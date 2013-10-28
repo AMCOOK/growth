@@ -1,0 +1,84 @@
+#multiyear modal analysis 
+
+
+
+
+# ----------------------
+# using snowcrab data
+ 
+#apply a filter
+  source( file.path( project.directory("snowcrab"), "src", "initialise.local.environment.r" ) )
+  loadfunctions(c('snowcrab','common'))
+  det = snowcrab.db( DS ="det.georeferenced" ) 
+  
+
+#set up a grid
+	  det <- gridSets(det)
+	  gr <- det[[2]]
+	  det <- det[[1]]
+	ps <- unique(det$PID)	
+	
+#plot the length frequency histograms
+	outdir <- "C:/~/ecomod/snowcrab/growth"
+	dir.create(outdir,recursive=T,showWarnings=F)
+plotHists=F
+if(plotHists) {
+	for(i in 1:length(ps)) {
+			pdf(file.path(outdir,"spatial.histograms",paste(ps[i],".pdf")))
+			makeMap()
+			addPolys(gr[gr$PID==ps[i],],col='red')
+			lfHistMatrix(x=det[det$PID==ps[i],],title='All carapace conditions')
+			dev.off()	
+	}
+}
+	#stepped through and identified the best data for modal analysis
+	
+	fi <- dir(file.path(outdir,"spatial.histograms"))
+	good.ps <-	as.numeric(unlist((strsplit(fi,"\\ .pdf"))))
+	sex <- c(0,1)	
+	
+	for(i in 1:length(good.ps)) {
+		for(j in 1:length(sex)) {
+		
+		
+		x 	<- reshapeCW(det[det$PID==1 & det$sex==0 ,]) #need to remove the eyars with very sparce data October 25, 2013 03:05:44 PM 
+		yr 	<- x[[2]]
+		x 	<- x[[1]]
+		xi 	<- identifyModes(x,span=5)
+		out <- annualMixBoot(x=x,init.mode=xi,ni=1000)
+		fname <- paste("PID",good.ps[i],"-",sex[j],".rdata",sep="")
+		save(out,file=file.path(outdir,"R",fname))
+	}
+}
+		#aa 	<- annualMeans(out)
+		#bb	<- identifyYearClasses(aa,male=T)
+		#	<- pullComponents(x=out,y=bb,w=aa)
+
+
+##--------------------
+#simulated data
+
+loadfunctions('snowcrab') 
+require(mixtools)
+  
+#set up simulatoin data 
+	y 		<- simulateMixtures(k=4,means=c(20,40,52,70),sigmas=c(4,3,4,5),prop=c(0.1,0.1,0.25,0.25),size=10000)
+
+	multi.year=T
+	if(multi.year) {
+			y2 		<- simulateMixtures(k=4,means=c(10,18,35,42),sigmas=c(4,3,4,5),prop=c(0.08,0.04,0.15,0.25),size=10000)
+			y3 		<- simulateMixtures(k=4,means=c(10,18,35,42),sigmas=c(4,3,4,5),prop=c(0.08,0.04,0.15,0.25),size=10000)
+			y4 		<- simulateMixtures(k=4,means=c(10,18,35,42),sigmas=c(4,3,4,5),prop=c(0.08,0.04,0.15,0.25),size=10000)
+
+			y <- cbindPad(cbindPad(cbindPad(y,y2),y3),y4)
+			}
+
+			
+##------------------------
+#mixture analysis
+			
+	annualMix(y)	
+	
+
+
+
